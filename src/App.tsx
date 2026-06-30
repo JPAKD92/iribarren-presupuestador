@@ -2,6 +2,45 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from './lib/supabase'
 import type { Presupuesto } from './types'
 
+const USERS: Record<string, string> = { marcos: 'marcos' }
+
+function LoginScreen({ onLogin }: { onLogin: () => void }) {
+  const [user, setUser] = useState('')
+  const [pass, setPass] = useState('')
+  const [err, setErr] = useState('')
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault()
+    if (USERS[user.toLowerCase()] === pass) {
+      localStorage.setItem('irb_auth', '1')
+      onLogin()
+    } else {
+      setErr('Usuario o contraseña incorrectos')
+    }
+  }
+
+  return (
+    <div className="login-wrap">
+      <div className="login-card">
+        <div className="logo-text" style={{ fontSize: '2.2rem', marginBottom: 4 }}>iribarren</div>
+        <div className="logo-sub" style={{ color: '#9B50DE', marginBottom: 28 }}>Tornería · Presupuestador</div>
+        <form onSubmit={submit}>
+          <div className="form-group">
+            <label>Usuario</label>
+            <input type="text" value={user} onChange={e => { setUser(e.target.value); setErr('') }} autoComplete="username" autoCapitalize="none" />
+          </div>
+          <div className="form-group">
+            <label>Contraseña</label>
+            <input type="password" value={pass} onChange={e => { setPass(e.target.value); setErr('') }} autoComplete="current-password" />
+          </div>
+          {err && <div className="error-msg">{err}</div>}
+          <button className="btn btn-primary" style={{ width: '100%', marginTop: 4 }} type="submit">Ingresar</button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 type View = 'list' | 'form' | 'print'
 
 function generarNumero(): string {
@@ -39,6 +78,7 @@ const emptyForm = (): Presupuesto => ({
 })
 
 export default function App() {
+  const [authed, setAuthed] = useState(() => localStorage.getItem('irb_auth') === '1')
   const [view, setView] = useState<View>('list')
   const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([])
   const [form, setForm] = useState<Presupuesto>(emptyForm())
@@ -145,6 +185,8 @@ export default function App() {
   }
 
   const current = printData ?? form
+
+  if (!authed) return <LoginScreen onLogin={() => setAuthed(true)} />
 
   return (
     <>

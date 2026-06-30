@@ -393,6 +393,29 @@ textarea {
 
 .print-doc { display: none; }
 
+/* ── LOGIN ─────────────────────────────────────────── */
+.login-wrap {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a0033 0%, #3d0080 60%, #6B00CC 100%);
+  padding: 20px;
+}
+
+.login-card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 36px 28px 32px;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  text-align: center;
+}
+
+.login-card .form-group { text-align: left; }
+.login-card label { color: var(--text-muted); }
+
 /* ── RESPONSIVE ────────────────────────────────────── */
 @media (max-width: 480px) {
   .form-card { padding: 16px; }
