@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import html2canvas from 'html2canvas'
+import jsPDF from 'jspdf'
 import { supabase } from './lib/supabase'
 import type { Presupuesto } from './types'
 
@@ -49,7 +50,8 @@ function generarNumero(): string {
   const dd = String(now.getDate()).padStart(2, '0')
   const mm = String(now.getMonth() + 1).padStart(2, '0')
   const hh = String(now.getHours()).padStart(2, '0')
-  return `101-${dd}${mm}${hh}`
+  const min = String(now.getMinutes()).padStart(2, '0')
+  return `101-${dd}${mm}${hh}${min}`
 }
 
 function fechaHoy(): string {
@@ -162,18 +164,50 @@ export default function App() {
     await savePresupuesto()
   }
 
+  async function generarPDF(p: Presupuesto) {
+    setPrintData(p)
+    setSharing(true)
+    await new Promise(r => setTimeout(r, 120))
+    try {
+      const el = printRef.current
+      if (!el) return
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      })
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = (canvas.height * pageWidth) / canvas.width
+      pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight)
+      const fileName = `presupuesto-${p.numero}.pdf`
+
+      // En mobile intentamos compartir el PDF
+      const pdfBlob = pdf.output('blob')
+      const file = new File([pdfBlob], fileName, { type: 'application/pdf' })
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: `Presupuesto ${p.numero}` })
+      } else {
+        pdf.save(fileName)
+      }
+    } catch {
+      // cancelación del diálogo — ok
+    } finally {
+      setSharing(false)
+      setPrintData(null)
+    }
+  }
+
   async function handlePrintFromForm() {
     const saved = await savePresupuesto()
     if (!saved) return
-    setPrintData(saved)
-    setView('print')
-    setTimeout(() => window.print(), 400)
+    await generarPDF(saved)
   }
 
-  function handlePrintFromList(p: Presupuesto) {
-    setPrintData(p)
-    setView('print')
-    setTimeout(() => window.print(), 400)
+  async function handlePrintFromList(p: Presupuesto) {
+    await generarPDF(p)
   }
 
   async function deletePresupuesto(id: string) {
@@ -306,7 +340,7 @@ export default function App() {
                   {p.total && <div className="card-total">$ {formatTotal(p.total)}</div>}
                   <div className="card-actions">
                     <button className="btn btn-outline btn-sm" onClick={() => editPresupuesto(p)}>✏️ Editar</button>
-                    <button className="btn btn-outline btn-sm" onClick={() => handlePrintFromList(p)}>🖨️ Imprimir</button>
+                    <button className="btn btn-outline btn-sm" onClick={() => handlePrintFromList(p)} disabled={sharing}>📄 PDF</button>
                     <button className="btn btn-share btn-sm" onClick={() => compartirImagen(p)} disabled={sharing}>
                       {sharing ? '⏳' : '🖼️ Imagen'}
                     </button>
@@ -385,17 +419,10 @@ export default function App() {
                 {sharing ? <span className="spinner" /> : '🖼️ Imagen'}
               </button>
               <button className="btn btn-primary" onClick={handlePrintFromForm} disabled={loading || sharing}>
-                {loading ? <span className="spinner" /> : '🖨️ Imprimir'}
+                {sharing ? <span className="spinner" /> : '📄 PDF'}
               </button>
             </div>
           </>
-        )}
-
-        {view === 'print' && (
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
-            <p style={{ marginBottom: 16 }}>Preparando impresión...</p>
-            <button className="btn btn-outline" onClick={backToList}>← Volver a la lista</button>
-          </div>
         )}
       </main>
     </>
