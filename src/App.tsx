@@ -184,6 +184,19 @@ export default function App() {
     setPrintData(null)
   }
 
+  const [search, setSearch] = useState('')
+
+  const filtered = presupuestos.filter(p => {
+    const q = search.toLowerCase()
+    if (!q) return true
+    return (
+      p.cliente?.toLowerCase().includes(q) ||
+      p.trabajo?.toLowerCase().includes(q) ||
+      p.numero?.toLowerCase().includes(q) ||
+      formatFecha(p.fecha).includes(q)
+    )
+  })
+
   const current = printData ?? form
 
   if (!authed) return <LoginScreen onLogin={() => setAuthed(true)} />
@@ -213,17 +226,31 @@ export default function App() {
               </button>
             </div>
 
+            <div className="search-wrap">
+              <span className="search-icon">🔍</span>
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Buscar por cliente, trabajo o fecha..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+              {search && (
+                <button className="search-clear" onClick={() => setSearch('')}>✕</button>
+              )}
+            </div>
+
             {listLoading ? (
               <div className="loading-overlay">
                 <div className="spinner" style={{ borderTopColor: 'var(--purple)', borderColor: 'var(--purple-border)' }} />
               </div>
-            ) : presupuestos.length === 0 ? (
+            ) : filtered.length === 0 ? (
               <div className="empty-state">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                <p>No hay presupuestos guardados</p>
+                <p>{search ? 'Sin resultados para esa búsqueda' : 'No hay presupuestos guardados'}</p>
               </div>
             ) : (
-              presupuestos.map(p => (
+              filtered.map(p => (
                 <div key={p.id} className="presupuesto-card">
                   <div className="card-top">
                     <span className="card-numero">{p.numero}</span>
