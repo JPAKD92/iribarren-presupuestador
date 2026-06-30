@@ -185,8 +185,7 @@ export default function App() {
   async function compartirImagen(p: Presupuesto) {
     setPrintData(p)
     setSharing(true)
-    // Espero un tick para que React renderice el print doc con los datos correctos
-    await new Promise(r => setTimeout(r, 80))
+    await new Promise(r => setTimeout(r, 100))
     try {
       const el = printRef.current
       if (!el) return
@@ -196,24 +195,24 @@ export default function App() {
         backgroundColor: '#ffffff',
         logging: false,
       })
-      canvas.toBlob(async blob => {
-        if (!blob) return
-        const file = new File([blob], `presupuesto-${p.numero}.png`, { type: 'image/png' })
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: `Presupuesto ${p.numero}` })
-        } else {
-          // Fallback: descarga directa
-          const url = URL.createObjectURL(blob)
-          const a = document.createElement('a')
-          a.href = url
-          a.download = `presupuesto-${p.numero}.png`
-          a.click()
-          URL.revokeObjectURL(url)
-        }
-        setSharing(false)
-        setPrintData(null)
-      }, 'image/png')
+      const blob = await new Promise<Blob | null>(resolve =>
+        canvas.toBlob(resolve, 'image/png')
+      )
+      if (!blob) return
+      const file = new File([blob], `presupuesto-${p.numero}.png`, { type: 'image/png' })
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: `Presupuesto ${p.numero}` })
+      } else {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `presupuesto-${p.numero}.png`
+        a.click()
+        URL.revokeObjectURL(url)
+      }
     } catch {
+      // AbortError si el usuario cancela el diálogo — está bien, no hacer nada
+    } finally {
       setSharing(false)
       setPrintData(null)
     }
