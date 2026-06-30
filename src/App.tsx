@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import html2canvas from 'html2canvas'
 import { supabase } from './lib/supabase'
 import type { Presupuesto } from './types'
 
@@ -88,6 +89,8 @@ export default function App() {
   const [listLoading, setListLoading] = useState(true)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+  const [sharing, setSharing] = useState(false)
+  const printRef = useRef<HTMLDivElement>(null)
 
   const loadPresupuestos = useCallback(async () => {
     setListLoading(true)
@@ -179,6 +182,49 @@ export default function App() {
     await loadPresupuestos()
   }
 
+  async function compartirImagen(p: Presupuesto) {
+    setPrintData(p)
+    setSharing(true)
+    // Espero un tick para que React renderice el print doc con los datos correctos
+    await new Promise(r => setTimeout(r, 80))
+    try {
+      const el = printRef.current
+      if (!el) return
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      })
+      canvas.toBlob(async blob => {
+        if (!blob) return
+        const file = new File([blob], `presupuesto-${p.numero}.png`, { type: 'image/png' })
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: `Presupuesto ${p.numero}` })
+        } else {
+          // Fallback: descarga directa
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `presupuesto-${p.numero}.png`
+          a.click()
+          URL.revokeObjectURL(url)
+        }
+        setSharing(false)
+        setPrintData(null)
+      }, 'image/png')
+    } catch {
+      setSharing(false)
+      setPrintData(null)
+    }
+  }
+
+  async function compartirImagenDesdeForm() {
+    const guardado = await savePresupuesto()
+    if (!guardado) return
+    await compartirImagen(guardado)
+  }
+
   function backToList() {
     setView('list')
     setPrintData(null)
@@ -203,9 +249,9 @@ export default function App() {
 
   return (
     <>
-      {/* PRINT DOC — visible only when @media print */}
+      {/* PRINT DOC — visible in @media print; off-screen for html2canvas */}
       <div className="print-watermark" aria-hidden="true" />
-      <div className="print-doc">
+      <div className="print-doc" ref={printRef}>
         <PrintDocument p={current} />
       </div>
 
@@ -262,6 +308,9 @@ export default function App() {
                   <div className="card-actions">
                     <button className="btn btn-outline btn-sm" onClick={() => editPresupuesto(p)}>✏️ Editar</button>
                     <button className="btn btn-outline btn-sm" onClick={() => handlePrintFromList(p)}>🖨️ Imprimir</button>
+                    <button className="btn btn-share btn-sm" onClick={() => compartirImagen(p)} disabled={sharing}>
+                      {sharing ? '⏳' : '🖼️ Imagen'}
+                    </button>
                     <button className="btn btn-danger btn-sm" onClick={() => deletePresupuesto(p.id!)}>🗑️</button>
                   </div>
                 </div>
@@ -330,11 +379,14 @@ export default function App() {
             </div>
 
             <div className="form-actions">
-              <button className="btn btn-outline" onClick={handleSave} disabled={loading}>
+              <button className="btn btn-outline" onClick={handleSave} disabled={loading || sharing}>
                 {loading ? <span className="spinner" /> : '💾 Guardar'}
               </button>
-              <button className="btn btn-primary" onClick={handlePrintFromForm} disabled={loading}>
-                {loading ? <span className="spinner" /> : '🖨️ Guardar e Imprimir'}
+              <button className="btn btn-share" onClick={compartirImagenDesdeForm} disabled={loading || sharing}>
+                {sharing ? <span className="spinner" /> : '🖼️ Imagen'}
+              </button>
+              <button className="btn btn-primary" onClick={handlePrintFromForm} disabled={loading || sharing}>
+                {loading ? <span className="spinner" /> : '🖨️ Imprimir'}
               </button>
             </div>
           </>

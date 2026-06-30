@@ -407,7 +407,22 @@ textarea {
   }
 }
 
-.print-doc { display: none; }
+.print-doc {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 680px;
+  background: white;
+  padding: 30px 36px;
+  z-index: -1;
+}
+
+.btn-share {
+  background: #e8f5e9;
+  color: #2d7a3a;
+  border: 1px solid #a5d6a7;
+}
+.btn-share:hover { background: #c8e6c9; }
 
 /* ── SEARCH ────────────────────────────────────────── */
 .search-wrap {
