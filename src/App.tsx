@@ -198,7 +198,7 @@ export default function App() {
 
       {/* SCREEN UI */}
       <header className="app-header no-print">
-        <div className="logo-text">iribarren</div>
+        <img src="/logo.png" alt="Iribarren" className="header-logo" />
         <div className="logo-sub">Tornería</div>
         <div className="header-contact">📞 11 6589-3817</div>
       </header>

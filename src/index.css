@@ -38,6 +38,21 @@ body {
   box-shadow: 0 4px 20px rgba(107,0,204,0.4);
 }
 
+.header-logo {
+  width: clamp(200px, 55vw, 380px);
+  height: auto;
+  mix-blend-mode: screen;
+  margin-bottom: -4px;
+}
+
+.login-logo {
+  width: min(280px, 80vw);
+  height: auto;
+  mix-blend-mode: multiply;
+  margin-bottom: 8px;
+  border-radius: 8px;
+}
+
 .logo-text {
   font-family: 'Barlow Condensed', 'Arial Black', sans-serif;
   font-style: italic;
